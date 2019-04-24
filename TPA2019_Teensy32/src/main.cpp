@@ -1,8 +1,8 @@
 #include <Arduino.h>
 #include <Encoder.h>
 
-uint8_t motor_pin[4][3] = {{23, 19, 18}, {22, 17, 16}, {21, 15, 14}, {20, 12, 11}};
-Encoder encoPulse[4] = {Encoder(2, 3), Encoder(4, 5), Encoder(6, 7), Encoder(8, 9)};
+uint8_t motor_pin[4][3] = {{20, 12, 11}, {22, 17, 16}, {23, 18, 19}, {21, 14, 15}};
+Encoder encoPulse[4] = {Encoder(6, 7), Encoder(4, 5), Encoder(3, 2), Encoder(8, 9)};
 // no1 bR
 uint8_t buff_index = 0;
 uint8_t buffer[10];
@@ -55,9 +55,10 @@ void setup()
 void loop()
 {
 	uint32_t _diffTime = micros() - _calTime;
-	if (_diffTime > 10)
+	if (_diffTime > 200000) //10
 	{
-		drive_pwm(1, 150);
+		//drive_pwm(3, 120);
+		Serial.println(encoPulse[1].read());
 		for (uint8_t i = 0; i < 4; i++)
 		{
 			//drive_pwm(i, setpoint[i]);
@@ -147,7 +148,7 @@ int16_t getOutput(uint8_t motor, int16_t setpoint)
 	int16_t sat = 150; // saturation limit of sum_error(integral)
 
 	int16_t error = setpoint - currentSpeed[motor]; // current error
-	
+
 	int8_t _direction = 0;
 	if (error > 0)
 		_direction = 1;
