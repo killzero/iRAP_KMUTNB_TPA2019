@@ -98,7 +98,7 @@ void readJoyPS4()
 {
 	if (PS4.connected())
 	{
-		int16_t maxSpeed = 230;
+		int16_t maxSpeed = 200;
 		sumSpeed = 0;
 
 		uint8_t analog_Lx = PS4.getAnalogHat(LeftHatX);
