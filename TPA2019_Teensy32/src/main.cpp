@@ -1,21 +1,30 @@
 #include <Arduino.h>
+#include <Encoder.h>
 
-uint8_t motor_pin[4][3] = {{5, 6, 7}, {5, 6, 7}, {5, 6, 7}, {5, 6, 7}};
-uint8_t enco_pin[4] = {6, 7, 8, 9};
-
+uint8_t motor_pin[4][3] = {{23, 19, 18}, {22, 17, 16}, {21, 15, 14}, {20, 12, 11}};
+Encoder encoPulse[4] = {Encoder(2, 3), Encoder(4, 5), Encoder(6, 7), Encoder(8, 9)};
+// no1 bR
 uint8_t buff_index = 0;
 uint8_t buffer[10];
+
+float kp[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+float ki[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+float kd[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 
 int16_t sumError[4];
 int16_t lastError[4];
 int16_t setpoint[4];
 int16_t currentSpeed[4];
 
-uint32_t encoPulse[4];
+//uint32_t encoPulse[4];
 uint32_t encoTime[4];
-int8_t encoDirection[4][2];
+int32_t lastPulse[4];
 
 uint32_t _calTime;
+// declare befor use
+void drive_pwm(uint8_t motor, int16_t speed);
+int16_t getRPM(uint8_t enco);
+int16_t getOutput(uint8_t motor, int16_t setpoint);
 
 void setup()
 {
@@ -29,26 +38,18 @@ void setup()
 		{
 			pinMode(motor_pin[i][j], OUTPUT);
 		}
-		pinMode(enco_pin[i], INPUT);
 		sumError[i] = 0;
 		lastError[i] = 0;
 		setpoint[i] = 0;
-		encoPulse[i] = 0;
 		encoTime[i] = 0;
 		currentSpeed[i] = 0;
-		encoDirection[i][0] = 0;
-		encoDirection[i][1] = 0;
+		lastPulse[i] = 0;
 	}
 	_calTime = 0;
 	for (uint8_t i = 0; i < 10; i++)
 	{
 		buffer[i] = 0;
 	}
-	//--------------- interupt -------------//
-	attachInterrupt(digitalPinToInterrupt(encoPulse[0]), countEnco0, FALLING);
-	// attachInterrupt(digitalPinToInterrupt(EncoPinB), encoderB, FALLING);
-	// attachInterrupt(digitalPinToInterrupt(EncoPinC), encoderC, FALLING);
-	// attachInterrupt(digitalPinToInterrupt(EncoPinD), encoderD, FALLING);
 }
 
 void loop()
@@ -56,6 +57,11 @@ void loop()
 	uint32_t _diffTime = micros() - _calTime;
 	if (_diffTime > 10)
 	{
+		drive_pwm(1, 150);
+		for (uint8_t i = 0; i < 4; i++)
+		{
+			//drive_pwm(i, setpoint[i]);
+		}
 		_calTime = micros();
 	}
 }
@@ -114,25 +120,6 @@ void serialEvent1()
 	}
 }
 
-void setDirection()
-{
-	for (uint8_t i = 0; i < 4; i++)
-	{
-		if (setpoint[i] > 0)
-			encoDirection[i][0] = 1;
-		else if (setpoint[i] < 0)
-			encoDirection[i][0] = -1;
-		else
-			encoDirection[i][0] = 0;
-
-		if (encoDirection[i][0] + encoDirection[i][1] == 0)
-		{
-			encoPulse[i] = 0;
-		}
-
-		encoDirection[i][1] = encoDirection[i][0];
-	}
-}
 int16_t getRPM(uint8_t enco)
 {
 	/* --------------------------------------------------------
@@ -141,13 +128,11 @@ int16_t getRPM(uint8_t enco)
    * ---- pulse * 1000 * 60 / 200 / encoTime0.01(microsec)
    * ---- RPM from pulse/micro
    * ----------------------------------------------------- */
-	currentSpeed[enco] = encoPulse[enco] * 300 / encoTime[enco];
+	currentSpeed[enco] = encoPulse[enco].read() * 300 / encoTime[enco];
 	encoTime[enco] = 0;
-	return (int16_t)currentSpeed[enco];
-}
-void countEnco0()
-{
-	encoPulse[0]++;
+	encoPulse[enco].write(0);
+	//return (int16_t)currentSpeed[enco];
+	return 0;
 }
 
 int16_t getOutput(uint8_t motor, int16_t setpoint)
@@ -161,13 +146,24 @@ int16_t getOutput(uint8_t motor, int16_t setpoint)
    	*  --------------------------------------------------------*/
 	int16_t sat = 150; // saturation limit of sum_error(integral)
 
-	int16_t error = abs(setpoint) - currentSpeed[motor]; // current error
-	sumError[motor] = sumError[motor] + error;			 // *dt (error * 0.01)
-	int diff_error = (error - lastError[motor]);		 // / 0.01 different of error
+	int16_t error = setpoint - currentSpeed[motor]; // current error
+	
+	int8_t _direction = 0;
+	if (error > 0)
+		_direction = 1;
+	else if (error < 0)
+		_direction = -1;
+
+	sumError[motor] = sumError[motor] + abs(error); // *dt (error * 0.01)
+	int diff_error = (error - lastError[motor]);	// / 0.01 different of error
 	if (sumError[motor] > sat)
 	{
 		sumError[motor] = sat;
 	}
 	lastError[motor] = error;
-	
+
+	float output = kp[motor] * error + (ki[motor] * sumError[motor]) + (kd[motor] * diff_error);
+	output = constrain(output, 0, 255) * _direction; // limit PWM
+
+	return (int16_t)output;
 }

@@ -6,9 +6,9 @@
 USB Usb;
 BTD Btd(&Usb); // You have to create the Bluetooth Dongle instance like so
 // You will need to hold down the PS and Share button at the same time,
-//PS4BT PS4(&Btd, PAIR);
+PS4BT PS4(&Btd, PAIR);
 // After that you can simply create the instance like so and then press the PS button on the device
-PS4BT PS4(&Btd);
+//PS4BT PS4(&Btd);
 
 #define D2R PI / 180
 #define R2D 180 / PI
@@ -17,6 +17,12 @@ uint32_t sendDataTime;
 int16_t sumSpeed;
 float radian;
 int8_t yaw;
+
+void initPS4();
+void sendSpeed(int16_t speed[4]);
+int16_t *getVector(int16_t velocity, float Ceta, int16_t rotate);
+void readJoyPS4();
+
 void setup()
 {
 	Serial.begin(9600);
@@ -33,6 +39,7 @@ void loop()
 {
 	if (millis() - sendDataTime > 20)
 	{
+		readJoyPS4();
 		int16_t *_vSpeed[4];
 		*_vSpeed = getVector(sumSpeed, radian, yaw);
 		sendSpeed(*_vSpeed);
@@ -40,7 +47,6 @@ void loop()
 		sendDataTime = millis();
 	}
 }
-
 void initPS4()
 {
 	if (Usb.Init() == -1)
@@ -96,6 +102,7 @@ int16_t *getVector(int16_t velocity, float Ceta, int16_t rotate)
 
 void readJoyPS4()
 {
+	Usb.Task();
 	if (PS4.connected())
 	{
 		int16_t maxSpeed = 200;
@@ -104,6 +111,7 @@ void readJoyPS4()
 		uint8_t analog_Lx = PS4.getAnalogHat(LeftHatX);
 		uint8_t analog_Ly = PS4.getAnalogHat(LeftHatY);
 		uint8_t analog_Rx = PS4.getAnalogHat(RightHatX);
+		Serial.println(analog_Lx);
 		// ------------------------------------------
 		bool center_Lx = (116 < analog_Lx & analog_Lx < 160);
 		bool center_Ly = (116 < analog_Ly & analog_Ly < 140);
