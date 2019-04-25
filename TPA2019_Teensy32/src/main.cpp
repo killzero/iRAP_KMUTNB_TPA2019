@@ -1,11 +1,11 @@
 #include <Arduino.h>
 #include <Encoder.h>
 
-uint8_t motor_pin[4][3] = {{20, 12, 11}, {22, 17, 16}, {23, 18, 19}, {21, 14, 15}};
+uint8_t motor_pin[4][3] = {{20, 11, 12}, {22, 17, 16}, {23, 19, 18}, {21, 14, 15}};
 Encoder encoPulse[4] = {Encoder(6, 7), Encoder(4, 5), Encoder(3, 2), Encoder(8, 9)};
 // no1 bR
 uint8_t buff_index = 0;
-uint8_t buffer[10];
+uint8_t buffer[12];
 
 float kp[4] = {1.0f, 1.0f, 1.0f, 1.0f};
 float ki[4] = {0.0f, 0.0f, 0.0f, 0.0f};
@@ -55,13 +55,15 @@ void setup()
 void loop()
 {
 	uint32_t _diffTime = micros() - _calTime;
-	if (_diffTime > 200000) //10
+	if (_diffTime > 10) //10
 	{
 		//drive_pwm(3, 120);
-		Serial.println(encoPulse[1].read());
+		//
+		//
 		for (uint8_t i = 0; i < 4; i++)
 		{
-			//drive_pwm(i, setpoint[i]);
+			drive_pwm(i, setpoint[i]);
+			//Serial.println(setpoint[0]);
 		}
 		_calTime = micros();
 	}
@@ -93,30 +95,37 @@ void serialEvent1()
 {
 	while (Serial1.available())
 	{
-		buffer[buff_index] = (uint8_t)Serial1.read(); // get data
-		buff_index = (buff_index + 1) % 10;			  // limit index
-		if (buff_index == 1 && buffer[0] != 0x55)
+
+		buff_index = buff_index % 12;			   // limit index
+		buffer[buff_index] = (char)Serial1.read(); // get data
+
+		if (buff_index == 0 && buffer[0] != '#')
 		{
-			buff_index = 0;
 			return; // break when get data fail
 		}
 
-		if (buff_index == 0 && buffer[9] == 0xc9)
-		{
-			setpoint[0] = (int16_t)((buffer[1] << 8 | buffer[2]));
-			setpoint[1] = (int16_t)((buffer[3] << 8 | buffer[4]));
-			setpoint[2] = (int16_t)((buffer[5] << 8 | buffer[6]));
-			setpoint[3] = (int16_t)((buffer[7] << 8 | buffer[8]));
+		buff_index++;
 
-			//temporary fix decode negative value (max -600)
-			if (setpoint[0] >= 64936)
-				setpoint[0] -= 65536;
-			if (setpoint[1] >= 64936)
-				setpoint[1] -= 65536;
-			if (setpoint[2] >= 64936)
-				setpoint[2] -= 65536;
-			if (setpoint[3] >= 64936)
-				setpoint[3] -= 65536;
+		if (buff_index == 11 && buffer[10] == '\r')
+		{
+			if (buffer[1] == 's')
+			{
+				setpoint[0] = (int)((buffer[2] << 8 | buffer[3]));
+				setpoint[1] = (int)((buffer[4] << 8 | buffer[5]));
+				setpoint[2] = (int)((buffer[6] << 8 | buffer[7]));
+				setpoint[3] = (int)((buffer[8] << 8 | buffer[9]));
+
+				//temporary fix decode negative value (max -600)
+				if (setpoint[0] >= 64936)
+					setpoint[0] -= 65536;
+				if (setpoint[1] >= 64936)
+					setpoint[1] -= 65536;
+				if (setpoint[2] >= 64936)
+					setpoint[2] -= 65536;
+				if (setpoint[3] >= 64936)
+					setpoint[3] -= 65536;
+			}
+			buff_index = 0;
 		}
 	}
 }
