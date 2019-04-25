@@ -153,10 +153,10 @@ int16_t *getVector(int16_t velocity, float Ceta, int16_t rotate)
 	float sCeta = sin(Ceta);
 
 	// ----------------------- Auto -------------------------------
-	float vFL = (velocity * ((cCeta * -0.707106) + (sCeta * -0.707106)) - rotate);
-	float vFR = (velocity * ((cCeta * -0.707106) + (sCeta * 0.707106)) - rotate);
-	float vBL = (velocity * ((cCeta * 0.707106) + (sCeta * -0.707106)) - rotate);
-	float vBR = (velocity * ((cCeta * 0.707106) + (sCeta * 0.707106)) - rotate);
+	float vFL = (velocity * ((cCeta * -0.707106) + (sCeta * -0.707106)) + rotate);
+	float vFR = (velocity * ((cCeta * -0.707106) + (sCeta * 0.707106)) + rotate);
+	float vBL = (velocity * ((cCeta * 0.707106) + (sCeta * -0.707106)) + rotate);
+	float vBR = (velocity * ((cCeta * 0.707106) + (sCeta * 0.707106)) + rotate);
 	/*
 	float vFL = (velocity * ((cCeta * 0.707106) + (sCeta * 0.707106)) - rotate);
 	float vFR = (velocity * ((cCeta * -0.707106) + (sCeta * 0.707106)) + rotate);
