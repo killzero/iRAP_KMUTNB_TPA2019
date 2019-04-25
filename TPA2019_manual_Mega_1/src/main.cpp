@@ -17,7 +17,7 @@ uint32_t missionTime;
 uint32_t _tempTime;
 int16_t sumSpeed;
 float radian;
-int8_t yaw;
+int16_t yaw;
 int16_t vSpeed[4];
 
 uint8_t linear[3] = {46, 42, 44}; // pwm in1 in2 //48 50
@@ -146,10 +146,10 @@ int16_t *getVector(int16_t velocity, float Ceta, int16_t rotate)
 	float sCeta = sin(Ceta);
 
 	// ----------------------- Auto -------------------------------
-	float vFL = (velocity * ((cCeta * -0.707106) + (sCeta * -0.707106)) - rotate);
-	float vFR = (velocity * ((cCeta * -0.707106) + (sCeta * 0.707106)) - rotate);
-	float vBL = (velocity * ((cCeta * 0.707106) + (sCeta * -0.707106)) - rotate);
-	float vBR = (velocity * ((cCeta * 0.707106) + (sCeta * 0.707106)) - rotate);
+	float vFL = (velocity * ((cCeta * -0.707106) + (sCeta * -0.707106)) + rotate);
+	float vFR = (velocity * ((cCeta * -0.707106) + (sCeta * 0.707106)) + rotate);
+	float vBL = (velocity * ((cCeta * 0.707106) + (sCeta * -0.707106)) + rotate);
+	float vBR = (velocity * ((cCeta * 0.707106) + (sCeta * 0.707106)) + rotate);
 
 	vSpeed[0] = (int16_t)vFL;
 	vSpeed[1] = (int16_t)vFR;
@@ -171,6 +171,7 @@ void readJoyPS4()
 		uint8_t analog_Rx = PS4.getAnalogHat(RightHatX);
 
 		getAnalog(analog_Lx, analog_Ly, analog_Rx);
+		
 	}
 	else
 	{
@@ -216,9 +217,10 @@ void getAnalog(uint8_t _Lx, uint8_t _Ly, uint8_t _Rx)
 	yaw = 0;
 	if (!center_Rx)
 	{
-		yaw = map(_Rx, 0, 255, -150, 150);
-		// Serial.println(analog_Rx);
+		yaw = map(_Rx, 255, 0, -150, 150);
+		// Serial.println(yaw);
 	}
+	
 }
 
 void drive(uint8_t pin[3], int16_t speed)
