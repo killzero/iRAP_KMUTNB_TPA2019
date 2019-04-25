@@ -2,7 +2,7 @@
 #include <Encoder.h>
 
 uint8_t motor_pin[4][3] = {{20, 11, 12}, {22, 17, 16}, {21, 15, 14}, {23, 18, 19}};
-Encoder encoPulse[4] = { Encoder(3, 2), Encoder(4, 5),Encoder(6, 7), Encoder(8, 9)};
+Encoder encoPulse[4] = {Encoder(3, 2), Encoder(4, 5), Encoder(6, 7), Encoder(8, 9)};
 // no1 bR
 uint8_t buff_index = 0;
 uint8_t buffer[12];
@@ -145,7 +145,7 @@ int16_t getRPM(uint8_t enco)
 	return currentSpeed[enco];
 }
 
-int16_t getOutput(uint8_t motor, int16_t setpoint)
+int16_t getOutput(uint8_t motor, int16_t _setpoint)
 {
 	/*  ----------------------------------------- 
 	*   -------------   PID calculate pseudocode ---------------
@@ -156,13 +156,16 @@ int16_t getOutput(uint8_t motor, int16_t setpoint)
    	*  --------------------------------------------------------*/
 	int16_t sat = 150; // saturation limit of sum_error(integral)
 
-	int16_t error = setpoint - getRPM(motor); // current error
+	int16_t error = _setpoint - getRPM(motor); // current error
 
 	int8_t _direction = 0;
 	if (error > 0)
 		_direction = 1;
 	else if (error < 0)
 		_direction = -1;
+
+	if (_setpoint != setpoint[motor][1])
+		sumError[motor] = 0;
 
 	sumError[motor] = sumError[motor] + abs(error); // *dt (error * 0.01)
 	int diff_error = (error - lastError[motor]);	// / 0.01 different of error
@@ -171,6 +174,8 @@ int16_t getOutput(uint8_t motor, int16_t setpoint)
 		sumError[motor] = sat;
 	}
 	lastError[motor] = error;
+
+	setpoint[motor][1] = _setpoint;
 
 	float output = kp[motor] * error + (ki[motor] * sumError[motor]) + (kd[motor] * diff_error);
 	output = constrain(output, 0, 255) * _direction; // limit PWM

@@ -2,11 +2,6 @@
 
 #include <PS4BT.h>
 #include <usbhub.h>
-
-// Satisfy the IDE, which needs to see the include statment in the ino too.
-#ifdef dobogusinclude
-#include <spi4teensy3.h>
-#endif
 #include <SPI.h>
 
 USB Usb;
@@ -16,29 +11,42 @@ BTD Btd(&Usb); // You have to create the Bluetooth Dongle instance like so
 // After that you can simply create the instance like so and then press the PS button on the device
 PS4BT PS4(&Btd);
 
-#define D2R PI / 180
-#define R2D 180 / PI
-
 uint32_t sendDataTime;
 uint32_t readJoyTime;
+uint32_t missionTime;
+uint32_t _tempTime;
 int16_t sumSpeed;
 float radian;
 int8_t yaw;
 int16_t vSpeed[4];
 
+uint8_t linear[3] = {46, 48, 50}; // pwm in1 in2
+uint8_t griper[3] = {53, 45, 47}; // grip slide shoot
+uint8_t plate[2] = {49, 51};	  //grip slide
+bool gripped, gripping, shooted, shooting;
+
 void initPS4();
 void sendSpeed(int16_t speed[4]);
 int16_t *getVector(int16_t velocity, float Ceta, int16_t rotate);
 void readJoyPS4();
+void getAnalog(uint8_t _Lx, uint8_t _Ly, uint8_t _Rx);
+void drive(uint8_t pin[3], int16_t speed);
+void inGame();
 
 void setup()
 {
 	Serial.begin(9600);
 	Serial1.begin(38400);
 
+	for (uint8_t i = 0; i < 3; i++)
+	{
+		pinMode(linear[i], OUTPUT);
+	}
+	drive(linear, -200);
 	initPS4();
 
-	delay(1000);
+	delay(2000);
+	drive(linear, 0);
 	yaw = 0;
 	radian = 0;
 	sumSpeed = 0;
@@ -69,6 +77,12 @@ void loop()
 		// Serial.print(vSpeed[3]);
 		// Serial.println();
 		sendDataTime = millis();
+	}
+	inGame();
+	if (millis() - missionTime > 20)
+	{
+		//
+		//drive(linear, 200);
 	}
 }
 void initPS4()
@@ -158,72 +172,187 @@ int16_t *getVector(int16_t velocity, float Ceta, int16_t rotate)
 
 void readJoyPS4()
 {
-	
+
 	if (PS4.connected())
 	{
-		int16_t maxSpeed = 150;
+
 		sumSpeed = 0;
 
 		uint8_t analog_Lx = PS4.getAnalogHat(LeftHatX);
 		uint8_t analog_Ly = PS4.getAnalogHat(LeftHatY);
 		uint8_t analog_Rx = PS4.getAnalogHat(RightHatX);
 
-		bool _up = PS4.getButtonPress(UP);
-		bool _right = PS4.getButtonPress(RIGHT);
-		bool _down = PS4.getButtonPress(DOWN);
-		bool _left = PS4.getButtonPress(LEFT);
-		bool arrowPress = _up || _right || _down || _left;
+		getAnalog(analog_Lx, analog_Ly, analog_Rx);
 
 		//Serial.println(sumSpeed);
 		//
-		// ------------------------------------------
-		bool center_Lx = (116 < analog_Lx && analog_Lx < 160);
-		bool center_Ly = (116 < analog_Ly && analog_Ly < 140);
-		bool center_Rx = (116 < analog_Rx && analog_Rx < 140);
-
-		radian = 0;
-		int16_t sp_Lx = map(analog_Lx, 255, 0, -maxSpeed, maxSpeed) * -1;
-		int16_t sp_Ly = map(analog_Ly, 255, 0, -maxSpeed, maxSpeed);
-
-		sumSpeed = maxSpeed;
-		if (center_Lx && center_Ly)
-		{
-			radian = 0;
-			sumSpeed = 0;
-		}
-		else if ((sp_Lx > 0 && center_Ly) || _right)
-		{
-			radian = 0.0f; // 0
-		}
-		else if ((center_Lx && sp_Ly > 0) || _up)
-		{
-			radian = 1.5708f; // 90
-		}
-		else if ((sp_Lx < 0 && center_Ly) || _left)
-		{
-			radian = 3.141593f; // 180
-		}
-		else if ((center_Lx && sp_Ly < 0) || _down)
-		{
-			radian = -1.5708f; // 270 //4.712389f;
-		}
-		else
-		{
-			radian = atan2(sp_Ly, sp_Lx);
-			//double sum = (sp_Lx * sp_Lx) + (sp_Ly * sp_Ly);
-			//sumSpeed = max(abs(sp_Lx), abs(sp_Ly));
-			//Serial.println(sumSpeed);
-		}
-
-		yaw = 0;
-		if (!center_Rx)
-		{
-			yaw = map(analog_Rx, 0, 255, -150, 150);
-			// Serial.println(analog_Rx);
-		}
 	}
 	else
 	{
+		sumSpeed = 0;
 		//Serial.println("Joy not connect");
+	}
+}
+
+void getAnalog(uint8_t _Lx, uint8_t _Ly, uint8_t _Rx)
+{
+	int16_t maxSpeed = 150;
+	// ------------------------------------------
+	bool center_Lx = (116 < _Lx && _Lx < 160);
+	bool center_Ly = (116 < _Ly && _Ly < 140);
+	bool center_Rx = (116 < _Rx && _Rx < 140);
+
+	radian = 0;
+	int16_t sp_Lx = map(_Lx, 255, 0, -maxSpeed, maxSpeed) * -1;
+	int16_t sp_Ly = map(_Ly, 255, 0, -maxSpeed, maxSpeed);
+
+	sumSpeed = maxSpeed;
+	if (center_Lx && center_Ly)
+	{
+		radian = 0;
+		sumSpeed = 0;
+	}
+	else if (sp_Lx > 0 && center_Ly)
+		radian = 0.0f; // 0
+	else if (center_Lx && sp_Ly > 0)
+		radian = 1.5708f; // 90
+	else if (sp_Lx < 0 && center_Ly)
+		radian = 3.141593f; // 180
+	else if (center_Lx && sp_Ly < 0)
+		radian = -1.5708f; // 270 //4.712389f;
+	else
+	{
+		radian = atan2(sp_Ly, sp_Lx);
+		//double sum = (sp_Lx * sp_Lx) + (sp_Ly * sp_Ly);
+		//sumSpeed = max(abs(sp_Lx), abs(sp_Ly));
+		//Serial.println(sumSpeed);
+	}
+
+	yaw = 0;
+	if (!center_Rx)
+	{
+		yaw = map(_Rx, 0, 255, -150, 150);
+		// Serial.println(analog_Rx);
+	}
+}
+
+void drive(uint8_t pin[3], int16_t speed)
+{
+	speed = constrain(speed, -255, 255);
+	if (speed > 0)
+	{
+		digitalWrite(pin[1], HIGH);
+		digitalWrite(pin[2], LOW);
+		digitalWrite(pin[0], HIGH));
+	}
+	else if (speed < 0)
+	{
+		digitalWrite(pin[1], LOW);
+		digitalWrite(pin[2], HIGH);
+		digitalWrite(pin[0], HIGH));
+	}
+	else
+	{
+		digitalWrite(pin[1], LOW);
+		digitalWrite(pin[2], LOW);
+	}
+	
+	//analogWrite(pin[0], abs(speed));
+}
+
+void grip()
+{
+	digitalWrite(griper[0], HIGH);
+	gripping = true;
+	// if (millis() - _tempTime > 3000)
+	// {
+	// 	gripping = false;
+	// 	gripped = true;
+	// 	Serial.println("Grip");
+	// }
+	if (millis() - _tempTime > 500)
+	{
+		drive(linear, 220);
+		//Serial.println("Lifting");
+		gripping = false;
+	 	gripped = true;
+	}
+}
+
+void reGrip()
+{
+	digitalWrite(griper[0], LOW);
+	drive(linear, -200);
+	gripped = false;
+}
+
+void shoot()
+{
+	digitalWrite(griper[0], LOW); // grip open
+	shooting = true;
+	if (millis() - _tempTime > 3000)
+	{
+		drive(linear, -200);
+		gripped = false;
+		shooting = false;
+		shooted = true;
+		//Serial.println("Shoot3");
+	}
+	else if (millis() - _tempTime > 2500)
+	{
+		digitalWrite(griper[3], LOW);
+		//Serial.println("Shoot2");
+	}
+	else if (millis() - _tempTime > 50)
+	{
+		digitalWrite(griper[3], HIGH); // shoot
+		//Serial.println("Shoot1");
+	}
+}
+
+void slidePlate(bool state)
+{
+	digitalWrite(plate[1], state);
+}
+
+void gripPlate(bool state)
+{
+	digitalWrite(plate[0], state);
+}
+
+void inGame()
+{
+	bool _right = PS4.getButtonClick(RIGHT);
+	bool _left = PS4.getButtonClick(LEFT);
+	bool x = PS4.getButtonClick(CROSS);
+	bool sq = PS4.getButtonClick(SQUARE);
+	bool tri = PS4.getButtonClick(TRIANGLE);
+	bool cir = PS4.getButtonClick(CIRCLE);
+
+	if (!gripped && x)
+	{
+		_tempTime = millis();
+		grip();
+	}
+	else if (gripped && tri)
+	{
+		reGrip();
+		//Serial.println("Free");
+	}
+	else if (gripped && sq)
+	{
+		_tempTime = millis();
+		shoot();
+	}
+
+	if (gripping)
+	{
+		grip();
+		//Serial.println("gripping");
+	}
+	else if (shooting)
+	{
+		shoot();
+		//Serial.println("shooting");
 	}
 }
