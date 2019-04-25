@@ -49,13 +49,13 @@ void setup()
 void loop()
 {
 	Usb.Task();
-	if (millis() - readJoyTime > 5)
+	if (millis() - readJoyTime > 2)
 	{
 		readJoyPS4();
 		readJoyTime = millis();
 	}
 	//readJoyPS4();
-	if (millis() - sendDataTime > 10) //20
+	if (millis() - sendDataTime > 10) //10 20
 	{
 		getVector(sumSpeed, radian, yaw);
 		sendSpeed(vSpeed);
@@ -139,10 +139,10 @@ int16_t *getVector(int16_t velocity, float Ceta, int16_t rotate)
 	float sCeta = sin(Ceta);
 
 	// ----------------------- Auto -------------------------------
-	float vFL = (velocity * ((cCeta * -0.707106) + (sCeta * -0.707106)) + rotate);
-	float vFR = (velocity * ((cCeta * -0.707106) + (sCeta * 0.707106)) + rotate);
-	float vBL = (velocity * ((cCeta * 0.707106) + (sCeta * -0.707106)) + rotate);
-	float vBR = (velocity * ((cCeta * 0.707106) + (sCeta * 0.707106)) + rotate);
+	float vFL = (velocity * ((cCeta * -0.707106) + (sCeta * -0.707106)) - rotate);
+	float vFR = (velocity * ((cCeta * -0.707106) + (sCeta * 0.707106)) - rotate);
+	float vBL = (velocity * ((cCeta * 0.707106) + (sCeta * -0.707106)) - rotate);
+	float vBR = (velocity * ((cCeta * 0.707106) + (sCeta * 0.707106)) - rotate);
 	/*
 	float vFL = (velocity * ((cCeta * 0.707106) + (sCeta * 0.707106)) - rotate);
 	float vFR = (velocity * ((cCeta * -0.707106) + (sCeta * 0.707106)) + rotate);
@@ -219,6 +219,7 @@ void readJoyPS4()
 		if (!center_Rx)
 		{
 			yaw = map(analog_Rx, 0, 255, -150, 150);
+			// Serial.println(analog_Rx);
 		}
 	}
 	else

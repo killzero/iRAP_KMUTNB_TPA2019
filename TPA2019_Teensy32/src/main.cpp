@@ -1,8 +1,8 @@
 #include <Arduino.h>
 #include <Encoder.h>
 
-uint8_t motor_pin[4][3] = {{20, 11, 12}, {22, 17, 16}, {23, 19, 18}, {21, 14, 15}};
-Encoder encoPulse[4] = {Encoder(6, 7), Encoder(4, 5), Encoder(3, 2), Encoder(8, 9)};
+uint8_t motor_pin[4][3] = {{20, 11, 12}, {22, 17, 16}, {21, 15, 14}, {23, 18, 19}};
+Encoder encoPulse[4] = { Encoder(3, 2), Encoder(4, 5),Encoder(6, 7), Encoder(8, 9)};
 // no1 bR
 uint8_t buff_index = 0;
 uint8_t buffer[12];
@@ -13,7 +13,7 @@ float kd[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 
 int16_t sumError[4];
 int16_t lastError[4];
-int16_t setpoint[4];
+int16_t setpoint[4][2];
 int16_t currentSpeed[4];
 
 //uint32_t encoPulse[4];
@@ -40,7 +40,8 @@ void setup()
 		}
 		sumError[i] = 0;
 		lastError[i] = 0;
-		setpoint[i] = 0;
+		setpoint[i][0] = 0;
+		setpoint[i][1] = 0;
 		encoTime[i] = 0;
 		currentSpeed[i] = 0;
 		lastPulse[i] = 0;
@@ -57,12 +58,11 @@ void loop()
 	uint32_t _diffTime = micros() - _calTime;
 	if (_diffTime > 10) //10
 	{
+		//Serial.println(encoPulse[0].read());
 		//drive_pwm(3, 120);
-		//
-		//
 		for (uint8_t i = 0; i < 4; i++)
 		{
-			drive_pwm(i, setpoint[i]);
+			drive_pwm(i, setpoint[i][0]);
 			//Serial.println(setpoint[0]);
 		}
 		_calTime = micros();
@@ -110,20 +110,20 @@ void serialEvent1()
 		{
 			if (buffer[1] == 's')
 			{
-				setpoint[0] = (int)((buffer[2] << 8 | buffer[3]));
-				setpoint[1] = (int)((buffer[4] << 8 | buffer[5]));
-				setpoint[2] = (int)((buffer[6] << 8 | buffer[7]));
-				setpoint[3] = (int)((buffer[8] << 8 | buffer[9]));
+				setpoint[0][0] = (int)((buffer[2] << 8 | buffer[3]));
+				setpoint[1][0] = (int)((buffer[4] << 8 | buffer[5]));
+				setpoint[2][0] = (int)((buffer[6] << 8 | buffer[7]));
+				setpoint[3][0] = (int)((buffer[8] << 8 | buffer[9]));
 
 				//temporary fix decode negative value (max -600)
-				if (setpoint[0] >= 64936)
-					setpoint[0] -= 65536;
-				if (setpoint[1] >= 64936)
-					setpoint[1] -= 65536;
-				if (setpoint[2] >= 64936)
-					setpoint[2] -= 65536;
-				if (setpoint[3] >= 64936)
-					setpoint[3] -= 65536;
+				if (setpoint[0][0] >= 64936)
+					setpoint[0][0] -= 65536;
+				if (setpoint[1][0] >= 64936)
+					setpoint[1][0] -= 65536;
+				if (setpoint[2][0] >= 64936)
+					setpoint[2][0] -= 65536;
+				if (setpoint[3][0] >= 64936)
+					setpoint[3][0] -= 65536;
 			}
 			buff_index = 0;
 		}
@@ -135,14 +135,14 @@ int16_t getRPM(uint8_t enco)
 	/* --------------------------------------------------------
    * ---- * 6000 = 100 * 60 from 10 millisec to 1 minute ----
    * ---- / 200 pulse to RPM --------------------------------
-   * ---- pulse * 1000 * 60 / 200 / encoTime0.01(microsec)
+   * ---- pulse * 1000 * 60 / 800 / encoTime0.01(microsec)
    * ---- RPM from pulse/micro
    * ----------------------------------------------------- */
-	currentSpeed[enco] = encoPulse[enco].read() * 300 / encoTime[enco];
+	currentSpeed[enco] = encoPulse[enco].read() * 75 / encoTime[enco];
 	encoTime[enco] = 0;
 	encoPulse[enco].write(0);
 	//return (int16_t)currentSpeed[enco];
-	return 0;
+	return currentSpeed[enco];
 }
 
 int16_t getOutput(uint8_t motor, int16_t setpoint)
@@ -156,7 +156,7 @@ int16_t getOutput(uint8_t motor, int16_t setpoint)
    	*  --------------------------------------------------------*/
 	int16_t sat = 150; // saturation limit of sum_error(integral)
 
-	int16_t error = setpoint - currentSpeed[motor]; // current error
+	int16_t error = setpoint - getRPM(motor); // current error
 
 	int8_t _direction = 0;
 	if (error > 0)
