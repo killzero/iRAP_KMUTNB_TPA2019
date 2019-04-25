@@ -20,7 +20,7 @@ float radian;
 int8_t yaw;
 int16_t vSpeed[4];
 
-uint8_t linear[3] = {46, 48, 50}; // pwm in1 in2
+uint8_t linear[3] = {46, 42, 44}; // pwm in1 in2 //48 50
 uint8_t griper[3] = {53, 45, 47}; // grip slide shoot
 uint8_t plate[2] = {49, 51};	  //grip slide
 bool gripped, gripping, shooted, shooting;
@@ -52,6 +52,7 @@ void setup()
 	sumSpeed = 0;
 	readJoyTime = 0;
 	sendDataTime = 0;
+	_tempTime = 0;
 }
 
 void loop()
@@ -153,10 +154,10 @@ int16_t *getVector(int16_t velocity, float Ceta, int16_t rotate)
 	float sCeta = sin(Ceta);
 
 	// ----------------------- Auto -------------------------------
-	float vFL = (velocity * ((cCeta * -0.707106) + (sCeta * -0.707106)) + rotate);
-	float vFR = (velocity * ((cCeta * -0.707106) + (sCeta * 0.707106)) + rotate);
-	float vBL = (velocity * ((cCeta * 0.707106) + (sCeta * -0.707106)) + rotate);
-	float vBR = (velocity * ((cCeta * 0.707106) + (sCeta * 0.707106)) + rotate);
+	float vFL = (velocity * ((cCeta * -0.707106) + (sCeta * -0.707106)) - rotate);
+	float vFR = (velocity * ((cCeta * -0.707106) + (sCeta * 0.707106)) - rotate);
+	float vBL = (velocity * ((cCeta * 0.707106) + (sCeta * -0.707106)) - rotate);
+	float vBR = (velocity * ((cCeta * 0.707106) + (sCeta * 0.707106)) - rotate);
 	/*
 	float vFL = (velocity * ((cCeta * 0.707106) + (sCeta * 0.707106)) - rotate);
 	float vFR = (velocity * ((cCeta * -0.707106) + (sCeta * 0.707106)) + rotate);
@@ -243,39 +244,38 @@ void drive(uint8_t pin[3], int16_t speed)
 	{
 		digitalWrite(pin[1], HIGH);
 		digitalWrite(pin[2], LOW);
-		digitalWrite(pin[0], HIGH));
+		//digitalWrite(pin[0], HIGH);
 	}
 	else if (speed < 0)
 	{
 		digitalWrite(pin[1], LOW);
 		digitalWrite(pin[2], HIGH);
-		digitalWrite(pin[0], HIGH));
+		//digitalWrite(pin[0], HIGH);
 	}
 	else
 	{
 		digitalWrite(pin[1], LOW);
 		digitalWrite(pin[2], LOW);
 	}
-	
-	//analogWrite(pin[0], abs(speed));
+
+	analogWrite(pin[0], abs(speed));
 }
 
 void grip()
 {
 	digitalWrite(griper[0], HIGH);
 	gripping = true;
-	// if (millis() - _tempTime > 3000)
-	// {
-	// 	gripping = false;
-	// 	gripped = true;
-	// 	Serial.println("Grip");
-	// }
-	if (millis() - _tempTime > 500)
+	if (millis() - _tempTime > 1000)
+	{
+		drive(linear, 220);
+		gripping = false;
+		gripped = true;
+		Serial.println("Grip");
+	}
+	else if (millis() - _tempTime > 500)
 	{
 		drive(linear, 220);
 		//Serial.println("Lifting");
-		gripping = false;
-	 	gripped = true;
 	}
 }
 
@@ -306,7 +306,7 @@ void shoot()
 	else if (millis() - _tempTime > 50)
 	{
 		digitalWrite(griper[3], HIGH); // shoot
-		//Serial.println("Shoot1");
+									   //Serial.println("Shoot1");
 	}
 }
 

@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <Encoder.h>
-
+// ------------------------ PWM INA INB ------
 uint8_t motor_pin[4][3] = {{20, 11, 12}, {22, 17, 16}, {21, 15, 14}, {23, 18, 19}};
 Encoder encoPulse[4] = {Encoder(3, 2), Encoder(4, 5), Encoder(6, 7), Encoder(8, 9)};
 // no1 bR
