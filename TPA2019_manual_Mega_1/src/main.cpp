@@ -57,10 +57,11 @@ void setup()
 
 void loop()
 {
-	Usb.Task();
-	if (millis() - readJoyTime > 3)
+	
+	if (millis() - readJoyTime > 1)
 	{
 		readJoyPS4();
+		inGame();
 		readJoyTime = millis();
 	}
 	//readJoyPS4();
@@ -72,9 +73,10 @@ void loop()
 		sendDataTime = millis();
 	}
 
+	
 	if (millis() - missionTime > 20)
 	{
-		inGame();
+		
 		missionTime = millis();
 	}
 }
@@ -160,7 +162,7 @@ int16_t *getVector(int16_t velocity, float Ceta, int16_t rotate)
 
 void readJoyPS4()
 {
-
+	Usb.Task();
 	if (PS4.connected())
 	{
 
@@ -182,7 +184,7 @@ void readJoyPS4()
 
 void getAnalog(uint8_t _Lx, uint8_t _Ly, uint8_t _Rx)
 {
-	int16_t maxSpeed = 150;
+	int16_t maxSpeed = 350;
 	// ------------------------------------------
 	bool center_Lx = (116 < _Lx && _Lx < 160);
 	bool center_Ly = (116 < _Ly && _Ly < 140);
