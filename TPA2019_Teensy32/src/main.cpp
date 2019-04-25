@@ -3,7 +3,7 @@
 // ------------------------ PWM INA INB ------
 uint8_t motor_pin[4][3] = {{20, 11, 12}, {22, 17, 16}, {21, 15, 14}, {23, 18, 19}};
 Encoder encoPulse[4] = {Encoder(3, 2), Encoder(4, 5), Encoder(6, 7), Encoder(8, 9)};
-// no1 bR
+
 uint8_t buff_index = 0;
 uint8_t buffer[12];
 
@@ -13,7 +13,7 @@ float kd[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 
 int16_t sumError[4];
 int16_t lastError[4];
-int16_t setpoint[4][2];
+int16_t setpoint[4][2]; // currentsetPoint, lastsetPoint
 int16_t currentSpeed[4];
 
 //uint32_t encoPulse[4];
@@ -21,6 +21,7 @@ uint32_t encoTime[4];
 int32_t lastPulse[4];
 
 uint32_t _calTime;
+uint32_t _printTime;
 // declare befor use
 void drive_pwm(uint8_t motor, int16_t speed);
 int16_t getRPM(uint8_t enco);
@@ -47,6 +48,7 @@ void setup()
 		lastPulse[i] = 0;
 	}
 	_calTime = 0;
+	_printTime = 0;
 	for (uint8_t i = 0; i < 10; i++)
 	{
 		buffer[i] = 0;
@@ -180,5 +182,20 @@ int16_t getOutput(uint8_t motor, int16_t _setpoint)
 	float output = kp[motor] * error + (ki[motor] * sumError[motor]) + (kd[motor] * diff_error);
 	output = constrain(output, 0, 255) * _direction; // limit PWM
 
-	return (int16_t)output;
+	return error; //(int16_t)output;
+}
+
+void TunePID()
+{
+	int16_t error = getOutput(0, setpoint[0][0]);
+	if (millis() - _printTime > 100)
+	{
+		Serial.print("S: "); //setpoint
+		Serial.print(setpoint[0][0]);
+		Serial.print("RPM: ");
+		Serial.print(getRPM(0));
+
+		
+		_printTime = millis();
+	}
 }

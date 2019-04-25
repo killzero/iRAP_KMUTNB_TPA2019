@@ -58,7 +58,7 @@ void setup()
 void loop()
 {
 	Usb.Task();
-	if (millis() - readJoyTime > 2)
+	if (millis() - readJoyTime > 3)
 	{
 		readJoyPS4();
 		readJoyTime = millis();
@@ -67,23 +67,15 @@ void loop()
 	if (millis() - sendDataTime > 10) //10 20
 	{
 		getVector(sumSpeed, radian, yaw);
+		// vSpeed[0] = 400;
 		sendSpeed(vSpeed);
-		// Serial.print(" Sp :");
-		// Serial.print(vSpeed[0]);
-		// Serial.print(" Sp :");
-		// Serial.print(vSpeed[1]);
-		// Serial.print(" Sp :");
-		// Serial.print(vSpeed[2]);
-		// Serial.print(" Sp :");
-		// Serial.print(vSpeed[3]);
-		// Serial.println();
 		sendDataTime = millis();
 	}
-	inGame();
+
 	if (millis() - missionTime > 20)
 	{
-		//
-		//drive(linear, 200);
+		inGame();
+		missionTime = millis();
 	}
 }
 void initPS4()
@@ -158,12 +150,7 @@ int16_t *getVector(int16_t velocity, float Ceta, int16_t rotate)
 	float vFR = (velocity * ((cCeta * -0.707106) + (sCeta * 0.707106)) - rotate);
 	float vBL = (velocity * ((cCeta * 0.707106) + (sCeta * -0.707106)) - rotate);
 	float vBR = (velocity * ((cCeta * 0.707106) + (sCeta * 0.707106)) - rotate);
-	/*
-	float vFL = (velocity * ((cCeta * 0.707106) + (sCeta * 0.707106)) - rotate);
-	float vFR = (velocity * ((cCeta * -0.707106) + (sCeta * 0.707106)) + rotate);
-	float vBL = (velocity * ((cCeta * -0.707106) + (sCeta * 0.707106)) - rotate);
-	float vBR = (velocity * ((cCeta * 0.707106) + (sCeta * 0.707106)) + rotate);
-	*/
+
 	vSpeed[0] = (int16_t)vFL;
 	vSpeed[1] = (int16_t)vFR;
 	vSpeed[2] = (int16_t)vBL;
@@ -184,9 +171,6 @@ void readJoyPS4()
 		uint8_t analog_Rx = PS4.getAnalogHat(RightHatX);
 
 		getAnalog(analog_Lx, analog_Ly, analog_Rx);
-
-		//Serial.println(sumSpeed);
-		//
 	}
 	else
 	{
@@ -322,6 +306,11 @@ void gripPlate(bool state)
 
 void inGame()
 {
+	bool _up = PS4.getButtonPress(UP);
+	if(_up){
+		// TunePID Here
+		// vSpeed[0] = 400;
+	}
 	bool _right = PS4.getButtonClick(RIGHT);
 	bool _left = PS4.getButtonClick(LEFT);
 	bool x = PS4.getButtonClick(CROSS);
