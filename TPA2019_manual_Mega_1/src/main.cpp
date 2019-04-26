@@ -22,7 +22,7 @@ int16_t vSpeed[4];
 
 uint8_t linear[3] = {46, 42, 44}; // pwm in1 in2 //48 50
 uint8_t griper[3] = {53, 45, 47}; // grip slide shoot
-uint8_t plate[2] = {49, 51};	  //grip slide
+uint8_t plate[2] = {49, 26};	  //grip slide
 bool gripped, gripping, shooted, shooting, plateGriped;
 
 void initPS4();
@@ -73,6 +73,7 @@ void loop()
 	{
 		readJoyPS4();
 		inGame();
+		
 		//testPnumetic();
 		readJoyTime = millis();
 	}
@@ -196,7 +197,7 @@ void readJoyPS4()
 void getAnalog(uint8_t _Lx, uint8_t _Ly, uint8_t _Rx)
 {
 	bool r1 = PS4.getButtonPress(R1);
-	int16_t maxSpeed = 200;
+	int16_t maxSpeed = 270;
 	if (r1)
 		maxSpeed = 350;
 
