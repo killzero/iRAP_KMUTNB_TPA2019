@@ -23,7 +23,7 @@ int16_t vSpeed[4];
 uint8_t linear[3] = {46, 42, 44}; // pwm in1 in2 //48 50
 uint8_t griper[3] = {53, 45, 47}; // grip slide shoot
 uint8_t plate[2] = {49, 51};	  //grip slide
-bool gripped, gripping, shooted, shooting;
+bool gripped, gripping, shooted, shooting, plateGriped;
 
 void initPS4();
 void sendSpeed(int16_t speed[4]);
@@ -33,6 +33,8 @@ void getAnalog(uint8_t _Lx, uint8_t _Ly, uint8_t _Rx);
 void drive(uint8_t pin[3], int16_t speed);
 void inGame();
 void testPnumetic();
+
+void reGrip();
 
 void setup()
 {
@@ -50,11 +52,11 @@ void setup()
 		pinMode(plate[i], OUTPUT);
 		digitalWrite(plate[i], LOW);
 	}
-
+	
 	drive(linear, -200);
 	initPS4();
 
-	delay(2000);
+	delay(1000);
 	drive(linear, 0);
 	yaw = 0;
 	radian = 0;
@@ -70,8 +72,8 @@ void loop()
 	if (millis() - readJoyTime > 1)
 	{
 		readJoyPS4();
-		//inGame();
-		testPnumetic();
+		inGame();
+		//testPnumetic();
 		readJoyTime = millis();
 	}
 	//readJoyPS4();
@@ -185,6 +187,7 @@ void readJoyPS4()
 	}
 	else
 	{
+		reGrip();
 		sumSpeed = 0;
 		//Serial.println("Joy not connect");
 	}
@@ -264,14 +267,14 @@ void grip()
 {
 	digitalWrite(griper[0], HIGH);
 	gripping = true;
-	if (millis() - _tempTime > 1000)
+	if (millis() - _tempTime > 1500)
 	{
 		drive(linear, 220);
 		gripping = false;
 		gripped = true;
 		Serial.println("Grip");
 	}
-	else if (millis() - _tempTime > 500)
+	else if (millis() - _tempTime > 1000)
 	{
 		drive(linear, 220);
 		//Serial.println("Lifting");
@@ -287,7 +290,6 @@ void reGrip()
 
 void shoot()
 {
-	digitalWrite(griper[0], LOW); // grip open
 	shooting = true;
 	if (millis() - _tempTime > 3000)
 	{
@@ -299,12 +301,22 @@ void shoot()
 	}
 	else if (millis() - _tempTime > 2500)
 	{
+		digitalWrite(griper[1], LOW);
 		digitalWrite(griper[2], LOW);
 		//Serial.println("Shoot2");
 	}
-	else if (millis() - _tempTime > 50)
+	else if (millis() - _tempTime > 1550)
 	{
 		digitalWrite(griper[2], HIGH); // shoot
+									   //Serial.println("Shoot1");
+	}
+	else if(millis() - _tempTime > 1500)
+	{
+		digitalWrite(griper[0], LOW); // grip open
+	}
+	else if(millis() - _tempTime > 100)
+	{
+		digitalWrite(griper[1], HIGH); // shoot
 									   //Serial.println("Shoot1");
 	}
 }
@@ -314,9 +326,10 @@ void slidePlate(bool state)
 	digitalWrite(plate[1], state);
 }
 
-void gripPlate(bool state)
+void gripPlate()
 {
-	digitalWrite(plate[0], state);
+	plateGriped = !plateGriped;
+	digitalWrite(plate[0], plateGriped);
 }
 
 void inGame()
@@ -351,14 +364,18 @@ void inGame()
 	}
 
 	if (gripping)
-	{
 		grip();
-		//Serial.println("gripping");
-	}
 	else if (shooting)
-	{
 		shoot();
-		//Serial.println("shooting");
+
+	if (cir)
+		gripPlate();
+
+	if(_left){
+		slidePlate(true);
+	}
+	else if(_right){
+		slidePlate(false);
 	}
 }
 
