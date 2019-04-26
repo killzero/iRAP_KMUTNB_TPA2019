@@ -32,6 +32,7 @@ void readJoyPS4();
 void getAnalog(uint8_t _Lx, uint8_t _Ly, uint8_t _Rx);
 void drive(uint8_t pin[3], int16_t speed);
 void inGame();
+void testPnumetic();
 
 void setup()
 {
@@ -41,7 +42,15 @@ void setup()
 	for (uint8_t i = 0; i < 3; i++)
 	{
 		pinMode(linear[i], OUTPUT);
+		pinMode(griper[i], OUTPUT);
+		digitalWrite(griper[i], LOW);
 	}
+	for (uint8_t i = 0; i < 2; i++)
+	{
+		pinMode(plate[i], OUTPUT);
+		digitalWrite(plate[i], LOW);
+	}
+
 	drive(linear, -200);
 	initPS4();
 
@@ -57,11 +66,12 @@ void setup()
 
 void loop()
 {
-	
+
 	if (millis() - readJoyTime > 1)
 	{
 		readJoyPS4();
-		inGame();
+		//inGame();
+		testPnumetic();
 		readJoyTime = millis();
 	}
 	//readJoyPS4();
@@ -73,10 +83,9 @@ void loop()
 		sendDataTime = millis();
 	}
 
-	
 	if (millis() - missionTime > 20)
 	{
-		
+
 		missionTime = millis();
 	}
 }
@@ -173,7 +182,6 @@ void readJoyPS4()
 		uint8_t analog_Rx = PS4.getAnalogHat(RightHatX);
 
 		getAnalog(analog_Lx, analog_Ly, analog_Rx);
-		
 	}
 	else
 	{
@@ -184,7 +192,11 @@ void readJoyPS4()
 
 void getAnalog(uint8_t _Lx, uint8_t _Ly, uint8_t _Rx)
 {
-	int16_t maxSpeed = 350;
+	bool r1 = PS4.getButtonPress(R1);
+	int16_t maxSpeed = 200;
+	if (r1)
+		maxSpeed = 350;
+
 	// ------------------------------------------
 	bool center_Lx = (116 < _Lx && _Lx < 160);
 	bool center_Ly = (116 < _Ly && _Ly < 140);
@@ -219,10 +231,9 @@ void getAnalog(uint8_t _Lx, uint8_t _Ly, uint8_t _Rx)
 	yaw = 0;
 	if (!center_Rx)
 	{
-		yaw = map(_Rx, 255, 0, -150, 150);
+		yaw = map(_Rx, 255, 0, -100, 100);
 		// Serial.println(yaw);
 	}
-	
 }
 
 void drive(uint8_t pin[3], int16_t speed)
@@ -288,12 +299,12 @@ void shoot()
 	}
 	else if (millis() - _tempTime > 2500)
 	{
-		digitalWrite(griper[3], LOW);
+		digitalWrite(griper[2], LOW);
 		//Serial.println("Shoot2");
 	}
 	else if (millis() - _tempTime > 50)
 	{
-		digitalWrite(griper[3], HIGH); // shoot
+		digitalWrite(griper[2], HIGH); // shoot
 									   //Serial.println("Shoot1");
 	}
 }
@@ -311,7 +322,8 @@ void gripPlate(bool state)
 void inGame()
 {
 	bool _up = PS4.getButtonPress(UP);
-	if(_up){
+	if (_up)
+	{
 		// TunePID Here
 		// vSpeed[0] = 400;
 	}
@@ -347,5 +359,60 @@ void inGame()
 	{
 		shoot();
 		//Serial.println("shooting");
+	}
+}
+
+void testPnumetic()
+{
+	bool _right = PS4.getButtonPress(RIGHT);
+	bool _left = PS4.getButtonPress(LEFT);
+	bool x = PS4.getButtonPress(CROSS);
+	bool sq = PS4.getButtonPress(SQUARE);
+	bool tri = PS4.getButtonPress(TRIANGLE);
+	bool cir = PS4.getButtonPress(CIRCLE);
+
+	if (x)
+	{
+		digitalWrite(griper[0], HIGH);
+	}
+	else
+	{
+		digitalWrite(griper[0], LOW);
+	}
+
+	if (sq)
+	{
+		digitalWrite(griper[2], HIGH);
+	}
+	else
+	{
+		digitalWrite(griper[2], LOW);
+	}
+
+	if (tri)
+	{
+		digitalWrite(griper[1], HIGH);
+	}
+	else
+	{
+		digitalWrite(griper[1], LOW);
+	}
+
+	if (_left)
+	{
+		digitalWrite(plate[1], HIGH);
+	}
+	else
+	{
+		digitalWrite(plate[1], LOW);
+	}
+
+	if (_right)
+	{
+		digitalWrite(plate[0], HIGH);
+	}
+	else
+	{
+		digitalWrite(plate[0], LOW);
 	}
 }
