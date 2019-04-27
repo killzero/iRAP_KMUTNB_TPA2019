@@ -52,7 +52,7 @@ void setup()
 		pinMode(plate[i], OUTPUT);
 		digitalWrite(plate[i], LOW);
 	}
-	
+
 	drive(linear, -200);
 	initPS4();
 
@@ -73,7 +73,7 @@ void loop()
 	{
 		readJoyPS4();
 		inGame();
-		
+
 		//testPnumetic();
 		readJoyTime = millis();
 	}
@@ -197,6 +197,11 @@ void readJoyPS4()
 void getAnalog(uint8_t _Lx, uint8_t _Ly, uint8_t _Rx)
 {
 	bool r1 = PS4.getButtonPress(R1);
+	bool _up = PS4.getButtonPress(UP);
+	bool _right = PS4.getButtonPress(RIGHT);
+	bool _left = PS4.getButtonPress(LEFT);
+	bool _down = PS4.getButtonPress(DOWN);
+
 	int16_t maxSpeed = 270;
 	if (r1)
 		maxSpeed = 350;
@@ -209,6 +214,28 @@ void getAnalog(uint8_t _Lx, uint8_t _Ly, uint8_t _Rx)
 	radian = 0;
 	int16_t sp_Lx = map(_Lx, 255, 0, -maxSpeed, maxSpeed) * -1;
 	int16_t sp_Ly = map(_Ly, 255, 0, -maxSpeed, maxSpeed);
+
+	if(_up){
+		sp_Ly = maxSpeed;
+		center_Lx = true;
+		center_Ly = false;
+	}
+	else if(_down){
+		sp_Ly = -maxSpeed;
+		center_Lx = true;
+		center_Ly = false;
+	}
+	else if(_left){
+		sp_Lx = -maxSpeed;
+		center_Lx = false;
+		center_Ly = true;
+	}
+	else if(_right){
+		sp_Lx = maxSpeed;
+		center_Lx = false;
+		center_Ly = true;
+	}
+	
 
 	sumSpeed = maxSpeed;
 	if (center_Lx && center_Ly)
@@ -306,16 +333,16 @@ void shoot()
 		digitalWrite(griper[2], LOW);
 		//Serial.println("Shoot2");
 	}
-	else if (millis() - _tempTime > 1550)
+	else if (millis() - _tempTime > 1600)
 	{
 		digitalWrite(griper[2], HIGH); // shoot
 									   //Serial.println("Shoot1");
 	}
-	else if(millis() - _tempTime > 1500)
+	else if (millis() - _tempTime > 1500)
 	{
 		digitalWrite(griper[0], LOW); // grip open
 	}
-	else if(millis() - _tempTime > 100)
+	else if (millis() - _tempTime > 100)
 	{
 		digitalWrite(griper[1], HIGH); // shoot
 									   //Serial.println("Shoot1");
@@ -341,8 +368,9 @@ void inGame()
 		// TunePID Here
 		// vSpeed[0] = 400;
 	}
-	bool _right = PS4.getButtonClick(RIGHT);
-	bool _left = PS4.getButtonClick(LEFT);
+	
+	bool _L1 = PS4.getButtonPress(L1);
+	uint8_t _L2 = PS4.getAnalogButton(L2);
 	bool x = PS4.getButtonClick(CROSS);
 	bool sq = PS4.getButtonClick(SQUARE);
 	bool tri = PS4.getButtonClick(TRIANGLE);
@@ -372,11 +400,13 @@ void inGame()
 	if (cir)
 		gripPlate();
 
-	if(_left){
-		slidePlate(true);
-	}
-	else if(_right){
+	if (_L2 > 128)
+	{ // in
 		slidePlate(false);
+	}
+	else if (_L1)
+	{
+		slidePlate(true);
 	}
 }
 
